@@ -1,5 +1,7 @@
 import os, ssl, json, base64
 import pika, requests, getpass
+import json
+import hashlib
 from pathlib import Path
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -73,18 +75,34 @@ def register():
     password = getpass.getpass("Choose a password: ")
 
     priv, pub = generate_keys(username)
+
     response = requests.post(
         f"{REGISTRY}/register",
-        json={"username": username, "public_key": pub.public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo).decode()},
+        json={
+            "username": username,
+            "public_key": pub.public_bytes(
+                serialization.Encoding.PEM,
+                serialization.PublicFormat.SubjectPublicKeyInfo
+            ).decode()
+        },
         verify=str(CA_PATH)
     )
-    print(response.status_code, response.text)
-    return username, priv
+    print(response.text)
 
-def login():
-    username = input("Username: ")
-    password = getpass.getpass("Password: ")
-    priv = load_private_key(username)
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    users_file = BASE_DIR / "users.json"
+
+    try:
+        with open(users_file, "r") as f:
+            users_db = json.load(f)
+    except FileNotFoundError:
+        users_db = {}
+
+    users_db[username] = password_hash
+
+    with open(users_file, "w") as f:
+        json.dump(users_db, f)
+
     return username, priv
 
 def login():
@@ -93,11 +111,27 @@ def login():
 
     priv_path = BASE_DIR / f"{username}_private.pem"
     if not priv_path.exists():
-        print(f"Error: user '{username}' does not exist or is not registered.")
+        return None, None
+
+    try:
+        with open(BASE_DIR / "users.json") as f:
+            users_db = json.load(f)
+    except FileNotFoundError:
+        print("No users registered yet.")
+        return None, None
+
+    stored_hash = users_db.get(username)
+    if not stored_hash:
+        print(f"User '{username}' not found in database.")
+        return None, None
+
+    if hashlib.sha256(password.encode()).hexdigest() != stored_hash:
+        print("Incorrect password.")
         return None, None
 
     priv = load_private_key(username)
     return username, priv
+
 
 def connect_rabbit(username):
     context = ssl._create_unverified_context()
@@ -176,7 +210,7 @@ def main():
             if username and priv:
                 break
             else:
-                print("User does not exist. Please register or try a different username.\n")
+                print("Username and password does not match. Please try again or register.\n")
         else:
             print("Invalid choice. Enter 'r' to register or 'l' to login.\n")
 
