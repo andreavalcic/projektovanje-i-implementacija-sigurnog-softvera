@@ -87,6 +87,18 @@ def login():
     priv = load_private_key(username)
     return username, priv
 
+def login():
+    username = input("Username: ")
+    password = getpass.getpass("Password: ")
+
+    priv_path = BASE_DIR / f"{username}_private.pem"
+    if not priv_path.exists():
+        print(f"Error: user '{username}' does not exist or is not registered.")
+        return None, None
+
+    priv = load_private_key(username)
+    return username, priv
+
 def connect_rabbit(username):
     context = ssl._create_unverified_context()
     credentials = pika.PlainCredentials("test_client", "test_client_password")
@@ -154,11 +166,19 @@ def receive_messages(username, priv, channel):
     print(f"Message from {sender}: {message}")
 
 def main():
-    choice = input("Register or Login? (r/l): ").lower()
-    if choice == "r":
-        username, priv = register()
-    else:
-        username, priv = login()
+    while True:
+        choice = input("Register or Login? (r/l): ").lower()
+        if choice == "r":
+            username, priv = register()
+            break
+        elif choice == "l":
+            username, priv = login()
+            if username and priv:
+                break
+            else:
+                print("User does not exist. Please register or try a different username.\n")
+        else:
+            print("Invalid choice. Enter 'r' to register or 'l' to login.\n")
 
     connection, channel = connect_rabbit(username)
 
@@ -170,8 +190,11 @@ def main():
             receive_messages(username, priv, channel)
         elif action == "q":
             break
+        else:
+            print("Invalid option. Choose 's', 'c', or 'q'.")
 
     connection.close()
+
 
 if __name__ == "__main__":
     main()
