@@ -13,7 +13,7 @@ def register_user(data: RegisterRequest):
     if data.username in users:
         raise HTTPException(status_code=400, detail="User already exists")
     users[data.username] = data.public_key
-    return {"status": "registered"}
+    return f"User '{data.username}' has been registered successfully!"
 
 @app.get("/key/{username}")
 def get_public_key(username: str):
