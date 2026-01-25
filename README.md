@@ -38,3 +38,53 @@ Klijenti rade na macOS-u, dok je server postavljen na Ubuntu mašini unutar Virt
 **NAT + Port forwarding:**
 - `VM → Settings → Network → Adapter 1 → Advanced → Port Forwarding`
 <img width="1721" height="982" alt="Screenshot 2026-01-21 at 01 48 44" src="https://github.com/user-attachments/assets/510f3328-49f8-4ea4-bede-e204c6515a41" />
+
+### Preduslovi za pokretanje
+
+**Klijentska strana (macOS):**  
+- **Python 3:** verzija 3.12.3  
+- **Visual Studio Code**: (ili drugi editor po izboru)
+- **Aktivno Python virtuelno okruženje**
+
+**Serverska strana (Ubuntu – VirtualBox):**  
+- **Python 3:** verzija 3.12.3
+- **RabbitMQ server (sa omogućenim TLS-om)**: verzija 3.12.1 sa sa omogućenim TLS-om
+- **Uvicorn:** verzija 0.27.1
+
+**Instalacija i podešavanje projekta**
+1. **Kreirati direktorijum projekta:**
+      * projektovanje-i-implementacija-sigurnog-softvera
+2. **Kreirati Python virtuelno okruženje:***
+      * python3 -m venv venv
+3. **Aktivirati virtuelno okruženje:**
+      * source venv/bin/activate
+4. **Instalirati neophodne Python biblioteke na serverskoj strani:**
+      * FastAPI
+      * Uvicorn
+5. **Instalirati neophodne Python biblioteke na klijentskoj strani:**
+      * cryptography
+      * requests
+      * pika
+
+**Podešavanje RabbitMQ servera (TLS)**
+1. **Kreirati direktorijum za sertifikate:**
+      - rabbitmq-certs
+2. **Generisati CA sertifikat i kopirati ga na klijentskoj strani:**
+      - ca.pem
+3. **Generisati serverski privatni ključ:**
+      - server.key
+4. **Generisati serverski sertifikat potpisan od strane CA:**
+      - server.pem
+5. **Kreiranje RabbitMQ korisnika**
+      - test_client
+
+**Pokretanje serverske aplikacije**
+1. cd projektovanje-i-implementacija-sigurnog-softvera
+2. source venv/bin/activate
+3. uvicorn server:app --host 0.0.0.0 --port 8000 --ssl-keyfile /home/anja/rabbitmq-certs/server.key --ssl-certfile /home/anja/rabbitmq-certs/server.pem
+
+**Pokretanje klijentske aplikacije**
+1. cd projektovanje-i-implementacija-sigurnog-softvera
+2. source venv/bin/activate
+3. python3 client.py
+
